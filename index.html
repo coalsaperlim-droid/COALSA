@@ -180,6 +180,9 @@ tr:last-child td{border-bottom:none}
   <button class="nb" onclick="goPage('invp',this)">📦 Inv. Productos</button>
   <button class="nb" onclick="goPage('invi',this)">🧪 Inv. Insumos</button>
   <button class="nb" onclick="goPage('peds',this)">🚚 Pedidos</button>
+  <button class="nb" onclick="goPage('capt',this)">🎯 Captadores</button>
+  <button class="nb" onclick="goPage('aliados',this)">🤝 Aliados</button>
+  <button class="nb" onclick="goPage('admin',this)">🏢 Administración</button>
   <button class="nb" onclick="goPage('rep',this)">📈 Reportes</button>
   <button class="nb" onclick="goPage('cfg',this)">⚙️ Config</button>
 </div>
@@ -277,6 +280,10 @@ tr:last-child td{border-bottom:none}
       <div class="fl"><label id="vcantlbl">Cantidad</label><input type="number" id="vq" min="0" placeholder="0" oninput="updPack()"></div>
       <div class="fl"><label>Precio unitario (S/.)</label><input type="number" id="vpr" min="0" step="0.01" placeholder="0.00"></div>
     </div>
+    <div class="fr">
+      <div class="fl"><label>Cliente Aliado (opcional)</label><select id="vali"><option value="">— Ninguno —</option></select></div>
+      <div class="fl" style="align-self:flex-end"><button class="btn bs" type="button" onclick="aplicarDescAliadoVenta()">💲 Aplicar precio Aliado</button></div>
+    </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
       <button class="btn bp" onclick="saveVenta()">+ Registrar venta</button>
       <span id="vpreview" style="font-size:13px;font-weight:700;color:var(--g)"></span>
@@ -364,6 +371,13 @@ tr:last-child td{border-bottom:none}
       <div class="fl"><label>Teléfono</label><input type="text" id="pedt" placeholder="+51..."></div>
       <div class="fl"><label>Estado</label><select id="peds2"><option value="pendiente">Pendiente</option><option value="entregado">Entregado</option></select></div>
     </div>
+    <div class="fr">
+      <div class="fl"><label>Captador (opcional)</label><select id="pedcap"><option value="">— Venta directa / sin captador —</option></select></div>
+      <div class="fl"><label>Unid. equivalentes (comisión)</label><input type="number" id="pedue" min="0" step="0.01" placeholder="0"></div>
+      <div class="fl"><label>Cliente Aliado (opcional)</label><select id="pedali"><option value="">— Ninguno —</option></select></div>
+    </div>
+    <div style="margin-bottom:10px"><button class="btn bs" type="button" onclick="aplicarDescAliadoPed()">💲 Aplicar precio Aliado a los productos agregados</button></div>
+    <div class="al ai" style="font-size:12px;margin-bottom:10px">💡 <strong>Unid. equivalentes</strong>: 1 galón = 1 unidad · 1 pack de 12×950g = 1 unidad. Ingresa el total de unidades-equivalentes de este pedido para calcular la comisión del captador al entregar.</div>
     <div id="peditems"></div>
     <button class="btn bs" onclick="addPedItem()" style="margin-bottom:10px">+ Agregar producto</button>
     <div class="fl" style="margin-bottom:10px"><label>Dirección / Notas</label><textarea id="pedn" placeholder="Dirección de entrega..."></textarea></div>
@@ -379,7 +393,119 @@ tr:last-child td{border-bottom:none}
       <button class="tp" onclick="setPedF('pendiente',this)">Pendientes</button>
       <button class="tp" onclick="setPedF('entregado',this)">Entregados</button>
     </div>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tel.</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="tbpeds"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tel.</th><th>Productos</th><th>Total</th><th>Captador</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="tbpeds"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════ CAPTADORES ═══════ -->
+<div id="pg-capt" class="pg">
+  <div class="card">
+    <div class="ch"><span class="ct">Registrar captador</span></div>
+    <div class="fr">
+      <div class="fl"><label>Nombre</label><input type="text" id="capn" placeholder="Nombre del captador"></div>
+      <div class="fl"><label>Teléfono</label><input type="text" id="capt2" placeholder="+51..."></div>
+    </div>
+    <button class="btn bp" onclick="saveCaptador()">+ Registrar captador</button>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Niveles y comisión (por unidad-equivalente)</span></div>
+    <div class="al ai" style="font-size:12px;margin-bottom:10px">💡 El nivel de cada captador se calcula automáticamente según sus pedidos entregados y cobrados en el mes en curso. Puedes ajustar los umbrales y tarifas si cambian las condiciones.</div>
+    <div id="capniveles"></div>
+    <button class="btn bs" onclick="saveNiveles()" style="margin-top:8px">💾 Guardar niveles</button>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Captadores — resumen del mes</span></div>
+    <div class="tw"><table><thead><tr><th>Captador</th><th>Teléfono</th><th>Pedidos entreg. (mes)</th><th>Nivel actual</th><th>Tarifa/unid.</th><th>Comisión del mes</th><th>Comisión histórica</th></tr></thead><tbody id="tbcapt"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Historial de comisiones generadas</span></div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Captador</th><th>Pedido / Cliente</th><th>Unid. equiv.</th><th>Nivel</th><th>Tarifa</th><th>Comisión</th></tr></thead><tbody id="tbcom"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════ ALIADOS ═══════ -->
+<div id="pg-aliados" class="pg">
+  <div class="card">
+    <div class="ch"><span class="ct">Registrar cliente Aliado</span></div>
+    <div class="fr">
+      <div class="fl"><label>Nombre del negocio</label><input type="text" id="alin" placeholder="Nombre del negocio"></div>
+      <div class="fl"><label>Teléfono</label><input type="text" id="alit" placeholder="+51..."></div>
+      <div class="fl"><label>Nivel</label><select id="alinv"></select></div>
+    </div>
+    <div class="fr">
+      <div class="fl"><label>Fecha de inicio suscripción</label><input type="date" id="alifi"></div>
+      <div class="fl"><label>Próxima fecha de entrega</label><input type="date" id="alipx"></div>
+      <div class="fl"><label>Referido por (captador/aliado, opcional)</label><input type="text" id="alirp" placeholder="Nombre..."></div>
+    </div>
+    <button class="btn bp" onclick="saveAliado()">+ Registrar Aliado</button>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Niveles Aliados — compromiso y descuento</span></div>
+    <div class="al ai" style="font-size:12px;margin-bottom:10px">💡 El descuento se aplica automáticamente al elegir el Aliado en Pedidos o Ventas mediante el botón "Aplicar precio Aliado" — sin regalo 12+1 para este canal (el descuento reemplaza esa función). La <strong>garantía Cero Quiebre</strong> (1 unidad gratis si falla la entrega) y el <strong>bono de referido</strong> (pagadero tras 2 meses de suscripción activa) se gestionan manualmente por ahora — quedan anotados en la ficha del Aliado para automatizar en una etapa futura.</div>
+    <div id="alniveles"></div>
+    <button class="btn bs" onclick="saveNivelesAliados()" style="margin-top:8px">💾 Guardar niveles</button>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Clientes Aliados — resumen</span></div>
+    <div class="tw"><table><thead><tr><th>Negocio</th><th>Teléfono</th><th>Nivel</th><th>Desc. Galón</th><th>Desc. Pack</th><th>Próx. entrega</th><th>Ingresos mes</th><th>Ingresos históricos</th><th></th></tr></thead><tbody id="tbaliados"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════ ADMINISTRACIÓN COALSA SRL ═══════ -->
+<div id="pg-admin" class="pg">
+  <div class="card">
+    <div class="ch"><span class="ct">🏢 Administración COALSA SRL — mes en curso</span>
+      <span id="admmes" style="font-size:12px;color:var(--t2)"></span>
+    </div>
+    <div class="al ai" style="font-size:12px">💡 Este panel calcula todo sobre tus datos reales ya registrados (ventas, pedidos entregados, gastos, comisiones y descuentos Aliados) — reemplaza el uso manual del Excel de proyecciones.</div>
+  </div>
+
+  <div class="kg" id="adkpis"></div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">📐 Progreso hacia el punto de equilibrio</span></div>
+    <div class="fr">
+      <div class="fl"><label>Meta unid.-equivalentes / mes</label><input type="number" id="admmeta" min="0"></div>
+      <div class="fl"><label>Fecha de inicio de operaciones</label><input type="date" id="admfi"></div>
+      <div class="fl"><label>Costos fijos mensuales (S/.)</label><input type="number" id="admcf" min="0" step="0.01"></div>
+      <div class="fl" style="align-self:flex-end"><button class="btn bs" onclick="saveConfigAdmin()">💾 Guardar</button></div>
+    </div>
+    <div id="admprogreso"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">💵 Meta de salario de los socios</span></div>
+    <div id="admsalario"></div>
+  </div>
+
+  <div class="cg">
+    <div class="cc" style="grid-column:1/-1"><div class="ccl">Últimos 6 meses — Ingresos · Costo insumos · Gastos · Comisiones · Utilidad</div><div style="height:230px;position:relative"><canvas id="chadmin"></canvas></div></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">📦 Margen real por producto — mes en curso</span></div>
+    <div class="tw"><table><thead><tr><th>Producto</th><th>Unid. vendidas</th><th>Ingresos</th><th>Costo</th><th>Margen S/.</th><th>Margen %</th></tr></thead><tbody id="tbadmprod"></tbody></table></div>
+  </div>
+
+  <div class="cg">
+    <div class="cc">
+      <div class="ccl">🤝 Canal Aliados — mes en curso</div>
+      <div id="admaliados"></div>
+    </div>
+    <div class="cc">
+      <div class="ccl">🎯 Comisiones a Captadores — mes en curso</div>
+      <div id="admcapt"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">📈 Proyección simple</span></div>
+    <div id="admproy"></div>
   </div>
 </div>
 
@@ -562,10 +688,35 @@ var INSU_DEFAULT = [
 // ════════════════════════════════════════════
 //  ESTADO GLOBAL
 // ════════════════════════════════════════════
+var NIVELES_DEFAULT = [
+  {id:"n1", nombre:"Iniciado", min:0,  max:20,     tarifa:1.00},
+  {id:"n2", nombre:"Regular",  min:21, max:50,     tarifa:1.30},
+  {id:"n3", nombre:"Estrella", min:51, max:999999, tarifa:1.60}
+];
+var NIVELES_ALIADOS_DEFAULT = [
+  {id:"a1", nombre:"Aliado",           compromiso:"1 pack o 2 galones",   descGalon:5,  descPack:5},
+  {id:"a2", nombre:"Aliado Plus",      compromiso:"2-3 packs o 4+ galones", descGalon:10, descPack:8},
+  {id:"a3", nombre:"Aliado Embajador", compromiso:"4+ packs o equivalente", descGalon:15, descPack:12}
+];
+var CONFIG_ADMIN_DEFAULT = {
+  metaUnidEquiv: 2250,
+  fechaInicio: "",
+  costosFijos: 0,
+  fasesSalario: [
+    {fase:"Mes 1-2",  monto:300},
+    {fase:"Mes 3-4",  monto:500},
+    {fase:"Mes 5-6",  monto:800},
+    {fase:"Mes 7-12", monto:1130}
+  ]
+};
 var db = {
   productos: JSON.parse(JSON.stringify(PRODS_DEFAULT)),
   insumos:   JSON.parse(JSON.stringify(INSU_DEFAULT)),
-  prod:[], ventas:[], gastos:[], movp:[], movi:[], peds:[]
+  niveles:   JSON.parse(JSON.stringify(NIVELES_DEFAULT)),
+  nivelesAliados: JSON.parse(JSON.stringify(NIVELES_ALIADOS_DEFAULT)),
+  configAdmin: JSON.parse(JSON.stringify(CONFIG_ADMIN_DEFAULT)),
+  prod:[], ventas:[], gastos:[], movp:[], movi:[], peds:[],
+  captadores:[], comisiones:[], aliados:[]
 };
 var FB_URL  = ""; // kept for compat but unused
 var JB_BIN  = localStorage.getItem("perlim_jb_bin")  || "";
@@ -629,6 +780,12 @@ function lload(){
     if(d.peds)     db.peds     = d.peds;
     if(d.productos && d.productos.length) db.productos = d.productos;
     if(d.insumos   && d.insumos.length)   db.insumos   = d.insumos;
+    if(d.captadores) db.captadores = d.captadores;
+    if(d.comisiones) db.comisiones = d.comisiones;
+    if(d.niveles && d.niveles.length) db.niveles = d.niveles;
+    if(d.aliados) db.aliados = d.aliados;
+    if(d.nivelesAliados && d.nivelesAliados.length) db.nivelesAliados = d.nivelesAliados;
+    if(d.configAdmin) db.configAdmin = Object.assign({}, CONFIG_ADMIN_DEFAULT, d.configAdmin);
   }catch(e){}
 }
 
@@ -661,6 +818,12 @@ function cloudLoad(cb){
           if(d.peds)     db.peds     = d.peds;
           if(d.productos && d.productos.length) db.productos = d.productos;
           if(d.insumos   && d.insumos.length)   db.insumos   = d.insumos;
+          if(d.captadores) db.captadores = d.captadores;
+          if(d.comisiones) db.comisiones = d.comisiones;
+          if(d.niveles && d.niveles.length) db.niveles = d.niveles;
+          if(d.aliados) db.aliados = d.aliados;
+          if(d.nivelesAliados && d.nivelesAliados.length) db.nivelesAliados = d.nivelesAliados;
+          if(d.configAdmin) db.configAdmin = Object.assign({}, CONFIG_ADMIN_DEFAULT, d.configAdmin);
         }
         ss("ok","Sincronizado ✓");
         if(cb) cb(true);
@@ -825,13 +988,13 @@ function goPage(p, btn){
   g("pg-"+p).classList.add("on");
   if(btn) btn.classList.add("on");
   var map = {dash:renderDash,prod:renderProd,ventas:renderVentas,gastos:renderGastos,
-             invp:renderInvP,invi:renderInvI,peds:renderPeds,rep:renderRep,cfg:renderCfg};
+             invp:renderInvP,invi:renderInvI,peds:renderPeds,capt:renderCapt,aliados:renderAliados,admin:renderAdmin,rep:renderRep,cfg:renderCfg};
   if(map[p]) map[p]();
 }
 
 function renderAll(){
   renderDash(); renderProd(); renderVentas(); renderGastos();
-  renderInvP(); renderInvI(); renderPeds();
+  renderInvP(); renderInvI(); renderPeds(); renderCapt(); renderAliados();
 }
 
 // ════════════════════════════════════════════
@@ -848,6 +1011,26 @@ function fillSelects(){
   });
   var si=g("adjin");
   if(si) si.innerHTML = db.insumos.map(function(i){return "<option>"+i.n+"</option>";}).join("");
+  var sc=g("pedcap");
+  if(sc){
+    var cur=sc.value;
+    sc.innerHTML = "<option value=\"\">— Venta directa / sin captador —</option>" +
+      db.captadores.map(function(c){return "<option>"+c.n+"</option>";}).join("");
+    if(cur) sc.value=cur;
+  }
+  ["pedali","vali"].forEach(function(id){
+    var sa=g(id); if(!sa) return;
+    var cur=sa.value;
+    sa.innerHTML = "<option value=\"\">— Ninguno —</option>" +
+      db.aliados.map(function(a){return "<option>"+a.n+"</option>";}).join("");
+    if(cur) sa.value=cur;
+  });
+  var sn=g("alinv");
+  if(sn){
+    var curn=sn.value;
+    sn.innerHTML = db.nivelesAliados.map(function(n){return "<option>"+n.nombre+"</option>";}).join("");
+    if(curn) sn.value=curn;
+  }
 }
 
 // ════════════════════════════════════════════
@@ -942,19 +1125,34 @@ function updPack(){
   sh("vpreview", tot>0 ? "= "+tot+" unidades" : "");
 }
 
+function aplicarDescAliadoVenta(){
+  var aliN = gv("vali"), pn = gv("vp");
+  if(!aliN){showAlert("Selecciona primero un Cliente Aliado");return;}
+  var ali = db.aliados.find(function(a){return a.n===aliN;});
+  var prod = db.productos.find(function(x){return x.n===pn;});
+  if(!ali||!prod){showAlert("Selecciona un producto válido");return;}
+  var niv = db.nivelesAliados.find(function(n){return n.nombre===ali.nivel;});
+  if(!niv){showAlert("El Aliado no tiene un nivel válido configurado");return;}
+  var desc = esGalon(pn) ? niv.descGalon : niv.descPack;
+  var nuevoPrecio = prod.pv * (1 - desc/100);
+  sv("vpr", nuevoPrecio.toFixed(2));
+  showAlert("Precio Aliado aplicado: "+fmt(nuevoPrecio)+" ("+desc+"% desc. sobre "+fmt(prod.pv)+")");
+}
+
 function saveVenta(){
   var f=gv("vf"),c=gv("vc")||"Sin nombre",t=gv("vt"),ch=gv("vch"),p=gv("vp");
   var m=parseInt(gv("vpack"))||1, pq=parseFloat(gv("vq"))||0, q=pq*m;
   var pr=parseFloat(gv("vpr"))||0;
   var pl=g("vpack").options[g("vpack").selectedIndex].text;
+  var ali=gv("vali")||"";
   if(!f||!pq||!pr){showAlert("Completa fecha, cantidad y precio");return;}
-  db.ventas.unshift({id:uid(),f:f,c:c,t:t,ch:ch,p:p,pq:pq,m:m,pl:pl,q:q,pr:pr,tot:q*pr});
+  db.ventas.unshift({id:uid(),f:f,c:c,t:t,ch:ch,p:p,pq:pq,m:m,pl:pl,q:q,pr:pr,tot:q*pr,ali:ali});
   var prod=db.productos.find(function(x){return x.n===p;});
   if(prod) prod.s = Math.max(0, prod.s-q);
   db.movp.unshift({id:uid(),f:f,p:p,t:"salida",q:q,o:"Venta",n:"Cliente: "+c});
-  sv("vq",""); sv("vpr",""); sv("vc",""); sv("vt","");
+  sv("vq",""); sv("vpr",""); sv("vc",""); sv("vt",""); sv("vali","");
   sh("vpreview",""); g("vpack").value="1"; g("vcantlbl").textContent="Cantidad";
-  sched(); renderVentas(); renderDash(); renderInvP();
+  sched(); renderVentas(); renderDash(); renderInvP(); renderAliados();
 }
 
 function renderVentas(){
@@ -967,8 +1165,9 @@ function renderVentas(){
   sh("tbventas", data.length
     ? data.map(function(v){
         var qs=v.m&&v.m>1 ? v.pq+" × "+v.m+"<br><small style=\"color:var(--t2)\">= "+v.q+" unid.</small>" : v.q+" unid.";
+        var canalTag = v.ali ? "<span class=\"bx bb2\">Aliado: "+v.ali+"</span>" : "<span class=\"bx bb2\">"+v.ch+"</span>";
         return "<tr><td>"+v.f+"</td><td>"+v.c+"</td><td>"+v.p+"</td><td style=\"font-size:12px\">"+qs+"</td>"+
-          "<td>"+fmt(v.pr)+"</td><td>"+fmt(v.tot)+"</td><td><span class=\"bx bb2\">"+v.ch+"</span></td>"+
+          "<td>"+fmt(v.pr)+"</td><td>"+fmt(v.tot)+"</td><td>"+canalTag+"</td>"+
           "<td><button class=\"bi d\" onclick=\"delR('ventas','"+v.id+"','ventas','"+v.p+"',"+v.q+")\" >🗑</button></td></tr>";
       }).join("")
     : "<tr><td colspan=\"8\"><div class=\"empty\">Sin ventas aún</div></td></tr>");
@@ -1150,6 +1349,7 @@ function addPedItem(){ PEDCNT++; g("peditems").insertAdjacentHTML("beforeend",pe
 
 function savePed(){
   var f=gv("pedf"),c=gv("pedc")||"Sin nombre",t=gv("pedt"),st=gv("peds2"),n=gv("pedn");
+  var cap=gv("pedcap")||"", ue=parseFloat(gv("pedue"))||0, ali=gv("pedali")||"";
   var items=[]; var tot=0;
   document.querySelectorAll(".ped-row").forEach(function(row){
     var pn=row.querySelector(".pr-p")&&row.querySelector(".pr-p").value;
@@ -1158,12 +1358,35 @@ function savePed(){
     if(q&&r){items.push({n:pn,q:q,r:r});tot+=q*r;}
   });
   if(!f||!items.length){showAlert("Completa fecha y al menos un producto con cantidad y precio");return;}
-  var ped={id:uid(),f:f,c:c,t:t,st:st,n:n,items:items,tot:tot};
+  var ped={id:uid(),f:f,c:c,t:t,st:st,n:n,items:items,tot:tot,cap:cap,ue:ue,ali:ali};
   db.peds.unshift(ped);
-  if(st==="entregado") descStock(ped);
-  sv("pedc",""); sv("pedt",""); sv("pedn",""); sv("peds2","pendiente");
+  if(st==="entregado") { ped.fe=today(); descStock(ped); if(cap) genComision(ped); }
+  sv("pedc",""); sv("pedt",""); sv("pedn",""); sv("peds2","pendiente"); sv("pedue","");
+  sv("pedcap",""); sv("pedali","");
   initPedItems();
-  sched(); renderPeds(); renderDash(); renderInvP();
+  sched(); renderPeds(); renderDash(); renderInvP(); renderCapt(); renderAliados();
+}
+
+function aplicarDescAliadoPed(){
+  var aliN = gv("pedali");
+  if(!aliN){showAlert("Selecciona primero un Cliente Aliado");return;}
+  var ali = db.aliados.find(function(a){return a.n===aliN;});
+  if(!ali){return;}
+  var niv = db.nivelesAliados.find(function(n){return n.nombre===ali.nivel;});
+  if(!niv){showAlert("El Aliado no tiene un nivel válido configurado");return;}
+  var rows = document.querySelectorAll(".ped-row");
+  if(!rows.length){showAlert("Agrega al menos un producto al pedido");return;}
+  rows.forEach(function(row){
+    var sel = row.querySelector(".pr-p");
+    var priceInput = row.querySelector(".pr-r");
+    if(!sel||!priceInput) return;
+    var pn = sel.value;
+    var prod = db.productos.find(function(x){return x.n===pn;});
+    if(!prod) return;
+    var desc = esGalon(pn) ? niv.descGalon : niv.descPack;
+    priceInput.value = (prod.pv*(1-desc/100)).toFixed(2);
+  });
+  showAlert("Precios Aliado aplicados según nivel "+niv.nombre);
 }
 
 function descStock(ped){
@@ -1176,7 +1399,342 @@ function descStock(ped){
 
 function doEntregar(id){
   var ped=db.peds.find(function(p){return p.id===id;});
-  if(ped){ped.st="entregado"; descStock(ped); sched(); renderPeds(); renderDash(); renderInvP();}
+  if(ped){
+    ped.st="entregado"; ped.fe=today();
+    descStock(ped);
+    if(ped.cap) genComision(ped);
+    sched(); renderPeds(); renderDash(); renderInvP(); renderCapt(); renderAliados();
+  }
+}
+
+// ════════════════════════════════════════════
+//  CAPTADORES Y COMISIONES
+// ════════════════════════════════════════════
+function nivelPorConteo(n){
+  var niv = db.niveles.find(function(x){return n>=x.min && n<=x.max;});
+  return niv || db.niveles[db.niveles.length-1];
+}
+
+function genComision(ped){
+  var mes = (ped.fe||today()).slice(0,7);
+  // cuenta pedidos entregados de este captador en el mes (incluyendo el actual)
+  var conteo = db.peds.filter(function(p){
+    return p.cap===ped.cap && p.st==="entregado" && (p.fe||"").startsWith(mes);
+  }).length;
+  var niv = nivelPorConteo(conteo);
+  var monto = (ped.ue||0) * niv.tarifa;
+  db.comisiones.unshift({id:uid(), f:ped.fe||today(), cap:ped.cap, pedId:ped.id,
+    cliente:ped.c, ue:ped.ue||0, nivel:niv.nombre, tarifa:niv.tarifa, monto:monto});
+  ped.comisionMonto = monto; ped.comisionNivel = niv.nombre;
+}
+
+function saveCaptador(){
+  var n=(gv("capn")||"").trim(), t=gv("capt2");
+  if(!n){showAlert("Ingresa el nombre del captador");return;}
+  if(db.captadores.find(function(c){return c.n===n;})){showAlert("Ya existe ese captador");return;}
+  db.captadores.push({id:uid(), n:n, t:t});
+  sv("capn",""); sv("capt2","");
+  fillSelects(); sched(); renderCapt();
+}
+
+function saveNiveles(){
+  db.niveles.forEach(function(niv){
+    var mn=parseFloat(gv("nv-min-"+niv.id)), mx=parseFloat(gv("nv-max-"+niv.id)), tf=parseFloat(gv("nv-tf-"+niv.id));
+    if(!isNaN(mn)) niv.min=mn;
+    if(!isNaN(mx)) niv.max=mx;
+    if(!isNaN(tf)) niv.tarifa=tf;
+  });
+  sched(); renderCapt();
+  showAlert("Niveles guardados");
+}
+
+function renderCapt(){
+  sh("capniveles", db.niveles.map(function(niv){
+    return "<div class=\"fr\" style=\"margin-bottom:6px\">"+
+      "<div class=\"fl\"><label>"+niv.nombre+" — mín. pedidos/mes</label><input type=\"number\" id=\"nv-min-"+niv.id+"\" value=\""+niv.min+"\"></div>"+
+      "<div class=\"fl\"><label>máx. pedidos/mes</label><input type=\"number\" id=\"nv-max-"+niv.id+"\" value=\""+niv.max+"\"></div>"+
+      "<div class=\"fl\"><label>Tarifa S/. por unid.</label><input type=\"number\" step=\"0.01\" id=\"nv-tf-"+niv.id+"\" value=\""+niv.tarifa+"\"></div>"+
+      "</div>";
+  }).join(""));
+
+  var mes = today().slice(0,7);
+  sh("tbcapt", db.captadores.length
+    ? db.captadores.map(function(c){
+        var conteo = db.peds.filter(function(p){return p.cap===c.n && p.st==="entregado" && (p.fe||"").startsWith(mes);}).length;
+        var niv = nivelPorConteo(conteo);
+        var comMes = db.comisiones.filter(function(x){return x.cap===c.n && x.f.startsWith(mes);}).reduce(function(s,x){return s+x.monto;},0);
+        var comTot = db.comisiones.filter(function(x){return x.cap===c.n;}).reduce(function(s,x){return s+x.monto;},0);
+        return "<tr><td><strong>"+c.n+"</strong></td><td>"+(c.t||"-")+"</td><td>"+conteo+"</td>"+
+          "<td><span class=\"bx bg\">"+niv.nombre+"</span></td><td>"+fmt(niv.tarifa)+"</td>"+
+          "<td>"+fmt(comMes)+"</td><td>"+fmt(comTot)+"</td></tr>";
+      }).join("")
+    : "<tr><td colspan=\"7\"><div class=\"empty\">Sin captadores registrados</div></td></tr>");
+
+  sh("tbcom", db.comisiones.length
+    ? db.comisiones.slice(0,80).map(function(x){
+        return "<tr><td>"+x.f+"</td><td>"+x.cap+"</td><td>"+(x.cliente||"-")+"</td><td>"+x.ue+"</td>"+
+          "<td><span class=\"bx bb2\">"+x.nivel+"</span></td><td>"+fmt(x.tarifa)+"</td><td><strong>"+fmt(x.monto)+"</strong></td></tr>";
+      }).join("")
+    : "<tr><td colspan=\"7\"><div class=\"empty\">Aún no se generan comisiones</div></td></tr>");
+}
+
+// ════════════════════════════════════════════
+//  CLIENTES ALIADOS
+// ════════════════════════════════════════════
+function esGalon(nombreProducto){
+  // Un producto se considera "Galón" para efectos de descuento Aliado si su nombre
+  // referencia la presentación de galón (3.78L / 3.9kg). El resto (300ml, 680ml, 950ml)
+  // se trata bajo la tarifa "Pack".
+  var n = (nombreProducto||"").toLowerCase();
+  return n.indexOf("gal") > -1 || n.indexOf("3.78") > -1 || n.indexOf("3.9") > -1;
+}
+
+function saveAliado(){
+  var n=(gv("alin")||"").trim(), t=gv("alit"), nv=gv("alinv"), fi=gv("alifi"), px=gv("alipx"), rp=gv("alirp");
+  if(!n){showAlert("Ingresa el nombre del negocio");return;}
+  if(db.aliados.find(function(a){return a.n===n;})){showAlert("Ya existe ese Aliado");return;}
+  if(!nv){showAlert("Selecciona un nivel");return;}
+  db.aliados.push({id:uid(), n:n, t:t, nivel:nv, fechaInicio:fi||today(), proximaEntrega:px||"", refPor:rp||""});
+  sv("alin",""); sv("alit",""); sv("alifi",""); sv("alipx",""); sv("alirp","");
+  fillSelects(); sched(); renderAliados();
+}
+
+function saveNivelesAliados(){
+  db.nivelesAliados.forEach(function(niv){
+    var dg=parseFloat(gv("na-dg-"+niv.id)), dp=parseFloat(gv("na-dp-"+niv.id)), cm=gv("na-cm-"+niv.id);
+    if(!isNaN(dg)) niv.descGalon=dg;
+    if(!isNaN(dp)) niv.descPack=dp;
+    if(cm!==undefined && cm!==null) niv.compromiso=cm;
+  });
+  sched(); renderAliados();
+  showAlert("Niveles Aliados guardados");
+}
+
+function renderAliados(){
+  sh("alniveles", db.nivelesAliados.map(function(niv){
+    return "<div class=\"fr\" style=\"margin-bottom:6px\">"+
+      "<div class=\"fl\"><label>"+niv.nombre+" — compromiso mensual</label><input type=\"text\" id=\"na-cm-"+niv.id+"\" value=\""+niv.compromiso+"\"></div>"+
+      "<div class=\"fl\"><label>Desc. Galón %</label><input type=\"number\" step=\"0.1\" id=\"na-dg-"+niv.id+"\" value=\""+niv.descGalon+"\"></div>"+
+      "<div class=\"fl\"><label>Desc. Pack %</label><input type=\"number\" step=\"0.1\" id=\"na-dp-"+niv.id+"\" value=\""+niv.descPack+"\"></div>"+
+      "</div>";
+  }).join(""));
+
+  var mes = today().slice(0,7);
+  sh("tbaliados", db.aliados.length
+    ? db.aliados.map(function(a){
+        var niv = db.nivelesAliados.find(function(n){return n.nombre===a.nivel;}) || {descGalon:0,descPack:0};
+        var ingMes = db.ventas.filter(function(v){return v.ali===a.n && v.f.startsWith(mes);}).reduce(function(s,v){return s+v.tot;},0)
+                   + db.peds.filter(function(p){return p.ali===a.n && p.st==="entregado" && (p.fe||"").startsWith(mes);}).reduce(function(s,p){return s+p.tot;},0);
+        var ingTot = db.ventas.filter(function(v){return v.ali===a.n;}).reduce(function(s,v){return s+v.tot;},0)
+                   + db.peds.filter(function(p){return p.ali===a.n && p.st==="entregado";}).reduce(function(s,p){return s+p.tot;},0);
+        var proxTag = a.proximaEntrega
+          ? (a.proximaEntrega < today() ? "<span class=\"bx br\">"+a.proximaEntrega+" ⚠️</span>" : "<span class=\"bx bb2\">"+a.proximaEntrega+"</span>")
+          : "<span style=\"color:var(--t2)\">-</span>";
+        return "<tr><td><strong>"+a.n+"</strong></td><td>"+(a.t||"-")+"</td><td><span class=\"bx bg\">"+a.nivel+"</span></td>"+
+          "<td>"+niv.descGalon+"%</td><td>"+niv.descPack+"%</td><td>"+proxTag+"</td>"+
+          "<td>"+fmt(ingMes)+"</td><td>"+fmt(ingTot)+"</td>"+
+          "<td><button class=\"bi d\" onclick=\"delAliado('"+a.id+"')\">🗑</button></td></tr>";
+      }).join("")
+    : "<tr><td colspan=\"9\"><div class=\"empty\">Sin clientes Aliados registrados</div></td></tr>");
+}
+
+function delAliado(id){
+  mConfirm("¿Eliminar este Aliado? (no afecta ventas/pedidos ya registrados)", function(){
+    db.aliados = db.aliados.filter(function(a){return a.id!==id;});
+    fillSelects(); sched(); renderAliados();
+  });
+}
+
+// ════════════════════════════════════════════
+//  ADMINISTRACIÓN COALSA SRL  (Etapa 3)
+// ════════════════════════════════════════════
+function unidEquiv(nombreProducto, q){
+  // 1 galón = 1 unidad-equivalente · 1 pack de 12x950g = 1 unidad-equivalente
+  // (para productos que no son galón, se asume equivalencia de pack de 12 unidades)
+  return esGalon(nombreProducto) ? q : q/12;
+}
+
+function mesesTranscurridos(fechaInicio, hasta){
+  if(!fechaInicio) return 1;
+  var d1=new Date(fechaInicio+"T00:00:00"), d2=new Date(hasta+"T00:00:00");
+  var meses=(d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth()) + 1;
+  return Math.max(1, meses);
+}
+
+function faseSalarioActual(){
+  var n = mesesTranscurridos(db.configAdmin.fechaInicio, today());
+  var fases = db.configAdmin.fasesSalario;
+  if(n<=2) return fases[0];
+  if(n<=4) return fases[1];
+  if(n<=6) return fases[2];
+  return fases[3];
+}
+
+// Todas las líneas vendidas (venta directa + pedidos entregados) de un mes dado (YYYY-MM)
+function lineasDelMes(mes){
+  var out=[];
+  db.ventas.filter(function(v){return v.f.startsWith(mes);}).forEach(function(v){
+    out.push({p:v.p, q:v.q, pr:v.pr, tot:v.tot, ali:v.ali||""});
+  });
+  db.peds.filter(function(p){return p.st==="entregado" && (p.fe||"").startsWith(mes);}).forEach(function(p){
+    p.items.forEach(function(it){
+      out.push({p:it.n, q:it.q, pr:it.r, tot:it.q*it.r, ali:p.ali||""});
+    });
+  });
+  return out;
+}
+
+function metricasMes(mes){
+  var lineas = lineasDelMes(mes);
+  var ingresos=0, costoInsumos=0, unidEq=0, ingAliados=0, descAliados=0;
+  lineas.forEach(function(l){
+    ingresos += l.tot;
+    var prod = db.productos.find(function(x){return x.n===l.p;});
+    var cu = prod ? prod.cu : 0, pv = prod ? prod.pv : l.pr;
+    costoInsumos += cu*l.q;
+    unidEq += unidEquiv(l.p, l.q);
+    if(l.ali){ ingAliados += l.tot; descAliados += Math.max(0,(pv-l.pr))*l.q; }
+  });
+  var gastosOp = db.gastos.filter(function(g){return g.t==="gasto" && g.f.startsWith(mes);}).reduce(function(s,g){return s+g.m;},0);
+  var comisiones = db.comisiones.filter(function(x){return x.f.startsWith(mes);}).reduce(function(s,x){return s+x.monto;},0);
+  var margenBruto = ingresos-costoInsumos;
+  var utilidadAntesSalario = margenBruto - gastosOp - comisiones - (db.configAdmin.costosFijos||0);
+  return {mes:mes, ingresos:ingresos, costoInsumos:costoInsumos, gastosOp:gastosOp, comisiones:comisiones,
+    margenBruto:margenBruto, utilidadAntesSalario:utilidadAntesSalario, unidEq:unidEq,
+    ingAliados:ingAliados, descAliados:descAliados, lineas:lineas};
+}
+
+function saveConfigAdmin(){
+  db.configAdmin.metaUnidEquiv = parseFloat(gv("admmeta"))||0;
+  db.configAdmin.fechaInicio = gv("admfi")||"";
+  db.configAdmin.costosFijos = parseFloat(gv("admcf"))||0;
+  sched(); renderAdmin();
+  showAlert("Configuración de Administración guardada");
+}
+
+function renderAdmin(){
+  var mesActual = today().slice(0,7);
+  var m = metricasMes(mesActual);
+  var cfg = db.configAdmin;
+
+  sh("admmes","Periodo: "+mesActual);
+  sv("admmeta", cfg.metaUnidEquiv);
+  sv("admfi", cfg.fechaInicio);
+  sv("admcf", cfg.costosFijos);
+
+  sh("adkpis",[
+    {i:"💵",l:"Ingresos reales del mes",v:fmt(m.ingresos),s:""},
+    {i:"🧪",l:"Costo insumos",v:fmt(m.costoInsumos),c:"neg",s:""},
+    {i:"📦",l:"Gastos operativos",v:fmt(m.gastosOp),c:"neg",s:""},
+    {i:"🎯",l:"Comisiones captadores",v:fmt(m.comisiones),c:"neg",s:""},
+    {i:"📊",l:"Utilidad antes de salarios",v:fmt(m.utilidadAntesSalario),c:m.utilidadAntesSalario>=0?"pos":"neg",s:""},
+    {i:"📐",l:"Unid.-equivalentes vendidas",v:m.unidEq.toFixed(1),s:"galón=1 · pack12=1"}
+  ].map(function(k){
+    return "<div class=\"kpi\"><div class=\"ki\">"+k.i+"</div><div class=\"kl\">"+k.l+"</div><div class=\"kv "+(k.c||"")+"\">"+k.v+"</div><div class=\"ks\">"+k.s+"</div></div>";
+  }).join(""));
+
+  // Progreso hacia punto de equilibrio (unidades)
+  var pctUnid = cfg.metaUnidEquiv>0 ? Math.min(100, (m.unidEq/cfg.metaUnidEquiv*100)) : 0;
+  sh("admprogreso",
+    "<div style=\"margin-top:10px\">"+
+    "<div style=\"display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px\">"+
+      "<span>"+m.unidEq.toFixed(1)+" de "+cfg.metaUnidEquiv+" unid.-equiv. ("+pctUnid.toFixed(1)+"%)</span></div>"+
+    "<div class=\"ib\" style=\"height:14px\"><div class=\"ibf "+(pctUnid<50?"crit":pctUnid<90?"low":"")+"\" style=\"width:"+pctUnid+"%\"></div></div>"+
+    (pctUnid>=100
+      ? "<div class=\"al ao\" style=\"margin-top:10px\">✅ Este mes alcanzas o superas tu meta de unidades-equivalentes para cubrir el punto de equilibrio de salario.</div>"
+      : "<div class=\"al aw\" style=\"margin-top:10px\">⚠️ Faltan "+(cfg.metaUnidEquiv-m.unidEq).toFixed(1)+" unidades-equivalentes para llegar a la meta este mes.</div>")+
+    "</div>");
+
+  // Meta de salario
+  var fase = faseSalarioActual();
+  var metaTotal = fase.monto*2;
+  var pctSal = metaTotal>0 ? Math.min(100, (m.utilidadAntesSalario/metaTotal*100)) : 0;
+  sh("admsalario",
+    "<div class=\"fr\">"+
+      "<div class=\"kpi\"><div class=\"kl\">Fase actual</div><div class=\"kv\">"+fase.fase+"</div><div class=\"ks\">S/. "+fase.monto+" / socio</div></div>"+
+      "<div class=\"kpi\"><div class=\"kl\">Meta total (2 socios)</div><div class=\"kv\">"+fmt(metaTotal)+"</div></div>"+
+      "<div class=\"kpi\"><div class=\"kl\">Utilidad real vs meta</div><div class=\"kv "+(m.utilidadAntesSalario>=metaTotal?"pos":"neg")+"\">"+pctSal.toFixed(1)+"%</div></div>"+
+    "</div>"+
+    "<div class=\"ib\" style=\"height:14px;margin-top:6px\"><div class=\"ibf "+(pctSal<50?"crit":pctSal<90?"low":"")+"\" style=\"width:"+pctSal+"%\"></div></div>"+
+    "<div class=\"al ai\" style=\"font-size:12px;margin-top:10px\">💡 La fase se calcula automáticamente según la fecha de inicio de operaciones que configures arriba. Los montos de cada fase (S/.300 → 500 → 800 → 1,130 por socio) son editables si cambia tu meta.</div>");
+
+  // Últimos 6 meses — chart
+  var ml=[], iI=[], iC=[], iG=[], iCo=[], iU=[];
+  for(var k=5;k>=0;k--){
+    var dt=new Date(); dt.setMonth(dt.getMonth()-k);
+    var mm=dt.toISOString().slice(0,7);
+    var mk = metricasMes(mm);
+    ml.push(mm);
+    iI.push(parseFloat(mk.ingresos.toFixed(2)));
+    iC.push(parseFloat(mk.costoInsumos.toFixed(2)));
+    iG.push(parseFloat((mk.gastosOp+(cfg.costosFijos||0)).toFixed(2)));
+    iCo.push(parseFloat(mk.comisiones.toFixed(2)));
+    iU.push(parseFloat(mk.utilidadAntesSalario.toFixed(2)));
+  }
+  mkChart("chadmin","bar",ml,[
+    {label:"Ingresos",    data:iI,  backgroundColor:"rgba(45,158,74,.8)",borderRadius:3},
+    {label:"Costo ins.",  data:iC,  backgroundColor:"rgba(226,75,74,.7)",borderRadius:3},
+    {label:"Gastos",      data:iG,  backgroundColor:"rgba(250,199,117,.85)",borderRadius:3},
+    {label:"Comisiones",  data:iCo, backgroundColor:"rgba(55,138,221,.8)",borderRadius:3},
+    {label:"Utilidad",    data:iU,  type:"line",borderColor:"#1a6b2f",backgroundColor:"transparent",tension:.4,pointRadius:4,borderWidth:2}
+  ]);
+
+  // Margen real por producto — mes en curso
+  var porProd={};
+  m.lineas.forEach(function(l){
+    if(!porProd[l.p]) porProd[l.p]={q:0,ing:0,costo:0};
+    porProd[l.p].q += l.q; porProd[l.p].ing += l.tot;
+    var prod = db.productos.find(function(x){return x.n===l.p;});
+    porProd[l.p].costo += (prod?prod.cu:0)*l.q;
+  });
+  var claves = Object.keys(porProd);
+  sh("tbadmprod", claves.length
+    ? claves.map(function(pn){
+        var d=porProd[pn], margen=d.ing-d.costo, pct=d.ing>0?(margen/d.ing*100):0;
+        return "<tr><td><strong>"+pn+"</strong></td><td>"+d.q.toFixed(1)+"</td><td>"+fmt(d.ing)+"</td>"+
+          "<td>"+fmt(d.costo)+"</td><td class=\""+(margen>=0?"pos":"neg")+"\">"+fmt(margen)+"</td><td>"+pct.toFixed(1)+"%</td></tr>";
+      }).join("")
+    : "<tr><td colspan=\"6\"><div class=\"empty\">Sin ventas registradas este mes</div></td></tr>");
+
+  // Canal Aliados
+  var pctAliados = m.ingresos>0 ? (m.ingAliados/m.ingresos*100) : 0;
+  sh("admaliados",
+    "<div class=\"kg\" style=\"grid-template-columns:1fr 1fr\">"+
+    "<div class=\"kpi\"><div class=\"kl\">Ingresos vía Aliados</div><div class=\"kv\">"+fmt(m.ingAliados)+"</div><div class=\"ks\">"+pctAliados.toFixed(1)+"% del total</div></div>"+
+    "<div class=\"kpi\"><div class=\"kl\">Descuento otorgado</div><div class=\"kv neg\">"+fmt(m.descAliados)+"</div><div class=\"ks\">"+db.aliados.length+" aliados activos</div></div>"+
+    "</div>");
+
+  // Comisiones a captadores
+  var topCap = {};
+  db.comisiones.filter(function(x){return x.f.startsWith(mesActual);}).forEach(function(x){
+    topCap[x.cap]=(topCap[x.cap]||0)+x.monto;
+  });
+  var topArr = Object.keys(topCap).map(function(k){return {n:k,v:topCap[k]};}).sort(function(a,b){return b.v-a.v;});
+  sh("admcapt",
+    "<div class=\"kpi\" style=\"margin-bottom:10px\"><div class=\"kl\">Total comisiones del mes</div><div class=\"kv neg\">"+fmt(m.comisiones)+"</div></div>"+
+    (topArr.length
+      ? "<div class=\"tw\"><table><thead><tr><th>Captador</th><th>Comisión</th></tr></thead><tbody>"+
+        topArr.map(function(t){return "<tr><td>"+t.n+"</td><td>"+fmt(t.v)+"</td></tr>";}).join("")+
+        "</tbody></table></div>"
+      : "<div class=\"empty\">Sin comisiones generadas este mes</div>"));
+
+  // Proyección simple
+  var hoy=new Date();
+  var diaActual=hoy.getDate();
+  var diasDelMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate();
+  var proyUnid = diaActual>0 ? (m.unidEq/diaActual*diasDelMes) : 0;
+  var proyIng  = diaActual>0 ? (m.ingresos/diaActual*diasDelMes) : 0;
+  var dtPrev=new Date(); dtPrev.setMonth(dtPrev.getMonth()-1);
+  var mesPrev = dtPrev.toISOString().slice(0,7);
+  var mPrev = metricasMes(mesPrev);
+  var crecimiento = mPrev.unidEq>0 ? ((proyUnid-mPrev.unidEq)/mPrev.unidEq*100) : null;
+  sh("admproy",
+    "<div class=\"kg\">"+
+    "<div class=\"kpi\"><div class=\"kl\">Ritmo actual → cierre de mes</div><div class=\"kv\">"+proyUnid.toFixed(1)+" unid.-equiv.</div><div class=\"ks\">"+fmt(proyIng)+" ingresos proyectados</div></div>"+
+    "<div class=\"kpi\"><div class=\"kl\">Mes anterior ("+mesPrev+") — cierre real</div><div class=\"kv\">"+mPrev.unidEq.toFixed(1)+" unid.-equiv.</div><div class=\"ks\">"+fmt(mPrev.ingresos)+"</div></div>"+
+    "<div class=\"kpi\"><div class=\"kl\">Crecimiento proyectado vs mes anterior</div><div class=\"kv "+(crecimiento==null?"":(crecimiento>=0?"pos":"neg"))+"\">"+(crecimiento==null?"—":crecimiento.toFixed(1)+"%")+"</div></div>"+
+    "</div>"+
+    "<div class=\"al ai\" style=\"font-size:12px;margin-top:10px\">💡 Proyección lineal simple: ritmo diario de este mes (a la fecha) × días del mes. El crecimiento compara ese cierre proyectado contra el cierre real del mes anterior completo — es una referencia direccional, no una cifra exacta ni un modelo estadístico.</div>");
 }
 
 function setPedF(f,btn){
@@ -1189,14 +1747,19 @@ function renderPeds(){
   var data=PF==="todos"?db.peds:db.peds.filter(function(p){return p.st===PF;});
   sh("tbpeds", data.length
     ? data.map(function(p){
+        var capInfo = p.cap
+          ? p.cap + (p.comisionMonto!=null ? "<br><small style=\"color:var(--gt)\">"+fmt(p.comisionMonto)+" ("+p.comisionNivel+")</small>" : "<br><small style=\"color:var(--t2)\">pend. entrega</small>")
+          : "<span style=\"color:var(--t2)\">—</span>";
+        if(p.ali) capInfo += "<br><small style=\"color:var(--bt)\">🤝 "+p.ali+"</small>";
         return "<tr><td>"+p.f+"</td><td>"+p.c+"</td><td>"+(p.t||"-")+"</td>"+
           "<td style=\"font-size:12px\">"+p.items.map(function(x){return x.n+" ×"+x.q;}).join("<br>")+"</td>"+
           "<td>"+fmt(p.tot)+"</td>"+
+          "<td style=\"font-size:12px\">"+capInfo+"</td>"+
           "<td><span class=\"bx "+(p.st==="pendiente"?"ba":"bg")+"\" >"+p.st+"</span></td>"+
           "<td style=\"display:flex;gap:4px\">"+(p.st==="pendiente"?"<button class=\"btn bp bs\" onclick=\"doEntregar('"+p.id+"')\" >✓ Entregar</button>":"")+
           "<button class=\"bi d\" onclick=\"delR('peds','"+p.id+"','peds')\">🗑</button></td></tr>";
       }).join("")
-    : "<tr><td colspan=\"7\"><div class=\"empty\">Sin pedidos</div></td></tr>");
+    : "<tr><td colspan=\"8\"><div class=\"empty\">Sin pedidos</div></td></tr>");
 }
 
 // ════════════════════════════════════════════
@@ -1338,11 +1901,14 @@ function delR(col, id, cb, prod, qty){
       var p2=db.productos.find(function(x){return x.n===prod;});
       if(p2) p2.s+=qty;
     }
+    if(col==="peds"){
+      db.comisiones = db.comisiones.filter(function(x){return x.pedId!==id;});
+    }
     db[col]=db[col].filter(function(x){return x.id!==id;});
     sched();
     var map={prod:renderProd,ventas:renderVentas,gastos:renderGastos,peds:renderPeds};
     if(map[cb]) map[cb]();
-    renderInvP(); renderDash();
+    renderInvP(); renderDash(); renderCapt(); renderAliados();
   });
 }
 
