@@ -1,2 +1,0 @@
-# COALSA
-Gestión de Coalsa
